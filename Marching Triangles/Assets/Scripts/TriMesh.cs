@@ -18,6 +18,7 @@ public class TriMesh
 
     public void generateMesh(bool useActivVertices, int useEveryXForMesh)
     {
+        System.Diagnostics.Debug.WriteLine(this.getSizeOfTriangle(new int[] { 7, 4 }, new int[] { 9, 7 }, new int[] { 8, 6 }));
         List<Cluster> clusters = saveClusters(useActivVertices, useEveryXForMesh);
         foreach (Cluster cluster in clusters)
         {
@@ -55,6 +56,7 @@ public class TriMesh
             }
             System.Diagnostics.Debug.WriteLine(str);
         }
+        str = "";
         do
         {
             Vertex best = null;
@@ -70,7 +72,7 @@ public class TriMesh
                 if (best != null) System.Diagnostics.Debug.WriteLine("Comparing: " + "[" + vertex.Position[0] + "]" + "[" + vertex.Position[1] + "]" + " to current best " + "[" + best.Position[0] + "]" + "[" + best.Position[1] + "]" + (Math.Sqrt(Math.Pow(best.Position[0] - averagePos[0], 2) + Math.Pow(best.Position[1] - averagePos[1], 2)) + ">" + (Math.Sqrt(Math.Pow(vertex.Position[0] - averagePos[0], 2) + Math.Pow(vertex.Position[1] - averagePos[1], 2)))));
                 bool isInRightDir = isInRightDirection(vertex.Position, current);
                 if ((best == null && isInRightDir)
-                    || (!vertex.Equals(current.Vertices[0]) && !vertex.Equals(current.Vertices[1]) && isInRightDir
+                    || (best != null && !vertex.Equals(current.Vertices[0]) && !vertex.Equals(current.Vertices[1]) && isInRightDir
                         && isCloserTo(averagePos, best.Position, vertex.Position)))
                 {
                     System.Diagnostics.Debug.WriteLine("true");
@@ -130,19 +132,20 @@ public class TriMesh
         int[] minPos = new int[] { Math.Min(egde.Vertices[0].Position[0], egde.Vertices[1].Position[0]), Math.Min(egde.Vertices[0].Position[1], egde.Vertices[1].Position[1]) };
         int[] maxPos = new int[] { Math.Max(egde.Vertices[0].Position[0], egde.Vertices[1].Position[0]), Math.Max(egde.Vertices[0].Position[1], egde.Vertices[1].Position[1]) };
         if (egde.Vertices[0].Position[0] == egde.Vertices[1].Position[0]) return current[0] > egde.Vertices[0].Position[0];
+        else if (egde.Vertices[0].Position[1] == egde.Vertices[1].Position[1]) return current[1] < egde.Vertices[0].Position[0];
         else if ((egde.Vertices[0].Position[0] < egde.Vertices[1].Position[0] && egde.Vertices[0].Position[1] > egde.Vertices[1].Position[1])
                  || (egde.Vertices[0].Position[0] > egde.Vertices[1].Position[0] && egde.Vertices[0].Position[1] < egde.Vertices[1].Position[1]))
         {
             //x2 or x1
             //1c    2c
-            return isInTriangle(egde.Vertices[0].Position, egde.Vertices[1].Position, maxPos, current) || current[0] > maxPos[0] || current[1] > maxPos[1];
+            return isInTriangle(egde.Vertices[0].Position, egde.Vertices[1].Position, maxPos, current) || (current[0] > minPos[0] && current[1] > minPos[1]) || (current[0] > maxPos[0] && current[1] > maxPos[1]);
         }
         else if ((egde.Vertices[0].Position[0] < egde.Vertices[1].Position[0] && egde.Vertices[0].Position[1] < egde.Vertices[1].Position[1])
                  || (egde.Vertices[0].Position[0] > egde.Vertices[1].Position[0] && egde.Vertices[0].Position[1] > egde.Vertices[1].Position[1]))
         {
             //2c or 1c
-            //x1    x2c
-            return isInTriangle(egde.Vertices[0].Position, egde.Vertices[1].Position, minPos, current) || current[0] < minPos[0] || current[1] > minPos[1];
+            //x1    x2
+            return isInTriangle(egde.Vertices[0].Position, egde.Vertices[1].Position, minPos, current) || (current[0] > minPos[0] && current[1] < minPos[1]) || (current[0] > maxPos[0] && current[1] < maxPos[1]);
         }
         //If edge lays past current: c2  ... 1x
         //                           1x      c2
@@ -166,15 +169,11 @@ public class TriMesh
 
     private float getSizeOfTriangle(int[] point1, int[] point2, int[] point3)
     {
-        List<int[]> sortedByX = new List<int[]>();
-        sortedByX.Add(point1);
-        sortedByX.Add(point2);
-        sortedByX.Add(point3);
-        sortedByX.Sort((int[] one, int[] two) => one[1].CompareTo(two[1]));
-        float lengthOfBase = (float)Math.Sqrt(Math.Pow(sortedByX[0][0] - sortedByX[1][0], 2) + Math.Pow(sortedByX[0][1] - sortedByX[1][1], 2));
-        sortedByX.Sort((int[] one, int[] two) => one[0].CompareTo(two[0]));
-        float height = Math.Abs(sortedByX[0][0] - sortedByX[2][0]);
-        return height * lengthOfBase / 2;
+        float length1 = (float)Math.Sqrt(Math.Pow(point1[0] - point2[0], 2) + Math.Pow(point1[1] - point2[1], 2));
+        float length2 = (float)Math.Sqrt(Math.Pow(point1[0] - point3[0], 2) + Math.Pow(point1[1] - point3[1], 2));
+        float length3 = (float)Math.Sqrt(Math.Pow(point3[0] - point2[0], 2) + Math.Pow(point3[1] - point2[1], 2));
+        float semi = (length1 + length2 + length3) / 2;
+        return (float)Math.Sqrt(semi * (semi - length1) + (semi - length2) * (semi - length3));
     }
     private void printList(List<Vertex> list, bool x)
     {
